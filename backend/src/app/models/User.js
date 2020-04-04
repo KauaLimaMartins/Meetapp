@@ -1,6 +1,5 @@
 const Sequelize = require('sequelize');
 const { Model } = require('sequelize');
-
 const bcrypt = require('bcrypt');
 
 class User extends Model {
@@ -10,21 +9,27 @@ class User extends Model {
         name: Sequelize.STRING,
         email: Sequelize.STRING,
         password: Sequelize.VIRTUAL,
-        password_hash: Sequelize.STRING
+        password_hash: Sequelize.STRING,
       },
       {
-        sequelize
+        sequelize,
       }
     );
 
     this.addHook('beforeSave', async user => {
       if (user.password) {
-        // 8 is the strength of the encryption
-        user.password_hash = await bcrypt.hash(user.password, 5);
+        user.password_hash = await bcrypt.hash(user.password, 8);
       }
     });
 
     return this;
+  }
+
+  static associate(models) {
+    this.belongsTo(models.File, {
+      foreignKey: 'avatar_id',
+      as: 'avatar',
+    });
   }
 
   checkPassword(password) {

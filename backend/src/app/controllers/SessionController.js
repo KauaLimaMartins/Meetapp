@@ -11,7 +11,7 @@ class SessionController {
       email: Yup.string()
         .email()
         .required(),
-      password: Yup.string().required()
+      password: Yup.string().required(),
     });
 
     if (!(await schema.isValid(req.body))) {
@@ -36,11 +36,11 @@ class SessionController {
       user: {
         id,
         name,
-        email
+        email,
       },
       token: jwt.sign({ id }, secret, {
-        expiresIn
-      })
+        expiresIn,
+      }),
     });
   }
 }

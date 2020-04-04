@@ -1,27 +1,30 @@
 const Yup = require('yup');
-
 const User = require('../models/User');
 
 class UserController {
   async store(req, res) {
     const schema = Yup.object().shape({
-      name: Yup.string().required(),
+      name: Yup.string()
+        .required()
+        .min(3),
       email: Yup.string()
         .email()
         .required(),
       password: Yup.string()
         .required()
-        .min(6)
+        .min(6),
     });
 
     if (!(await schema.isValid(req.body))) {
       return res.status(400).json({ error: 'Validation fails' });
     }
 
-    const userExists = await User.findOne({ where: { email: req.body.email } });
+    const emailExists = await User.findOne({
+      where: { email: req.body.email },
+    });
 
-    if (userExists) {
-      return res.status(400).json({ error: 'User already exists' });
+    if (emailExists) {
+      return res.status(400).json({ error: 'Email already exists' });
     }
 
     const { id, name, email } = await User.create(req.body);
@@ -39,11 +42,9 @@ class UserController {
         .when('oldPassword', (oldPassword, field) =>
           oldPassword ? field.required() : field
         ),
-      confirmPassword: Yup.string()
-        .min(6)
-        .when('password', (password, field) =>
-          password ? field.required().oneOf([Yup.ref('password')]) : field
-        )
+      confirmPassword: Yup.string().when('password', (password, field) =>
+        password ? field.required().oneOf([Yup.ref('password')]) : field
+      ),
     });
 
     if (!(await schema.isValid(req.body))) {
@@ -51,25 +52,45 @@ class UserController {
     }
 
     const { email, oldPassword } = req.body;
-
     const user = await User.findByPk(req.userId);
 
     if (email !== user.email) {
-      const userExists = await User.findOne({ where: { email } });
+      const emailExists = await User.findOne({ where: { email } });
 
-      if (userExists) {
-        return res.status(400).json({ error: 'User already exists' });
+      if (emailExists) {
+        return res.status(400).json({ error: 'Email already exists' });
       }
     }
 
-    // I'll just check if the oldPassword is right if he reports this field
     if (oldPassword && !(await user.checkPassword(oldPassword))) {
-      return res.status(401).json({ error: 'Password does not match' });
+      return res.status(401).json({ error: 'Invalid password' });
     }
 
     const { id, name } = await user.update(req.body);
 
     return res.json({ id, name, email });
+  }
+
+  async destroy(req, res) {
+    const schema = Yup.object().shape({
+      password: Yup.string()
+        .required()
+        .min(6),
+    });
+
+    if (!(await schema.isValid(req.body))) {
+      return res.status(401).json({ error: 'Validation fails' });
+    }
+
+    const user = await User.findByPk(req.userId);
+
+    if (!(await user.checkPassword(req.body.password))) {
+      return res.status(401).json({ error: 'Invalid Password' });
+    }
+
+    await User.destroy({ where: { id: user.id } });
+
+    return res.send();
   }
 }
 
