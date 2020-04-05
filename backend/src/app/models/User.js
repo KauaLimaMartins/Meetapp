@@ -30,6 +30,8 @@ class User extends Model {
       foreignKey: 'avatar_id',
       as: 'avatar',
     });
+    this.hasMany(models.Meetup);
+    this.hasMany(models.Subscription);
   }
 
   checkPassword(password) {
